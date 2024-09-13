@@ -1,6 +1,8 @@
 package com.example.bsafes
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.res.AssetManager
 import android.net.Uri
 import android.util.Log
@@ -23,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
+import java.net.URI
 
 class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
     private val assetManager: AssetManager = context.getAssets()
@@ -42,7 +45,8 @@ class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
         }
     }
 }
-const val PAGE_URL = "https://android.bsafes.com/logIn.html"
+const val LOCAL_HOST = "https://android.bsafes.com"
+const val PAGE_URL = LOCAL_HOST+ "/logIn.html"
 
 @Composable
 fun WebViewScreen() {
@@ -112,6 +116,33 @@ fun WebViewScreen() {
                         }
                     }
                     return interceptedWebResponse
+                }
+
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): Boolean {
+                    request?.url?.host?.let { targetDomain ->
+                        val currentDomain = URI(view?.url).toURL().host
+                        if(targetDomain.equals(currentDomain)) {
+                            return false
+                        }
+                        if(targetDomain.equals("www.bsafes.com") || targetDomain.equals("v2.bsafes.com")) {
+                            val url = LOCAL_HOST + request?.url?.path
+                            view?.loadUrl(url)
+                            return true
+                        } else {
+                            val intent = Intent(Intent.ACTION_VIEW, request.url)
+                            try {
+                                context.startActivity(intent)
+                            } catch(exception: ActivityNotFoundException) {
+                                Log.d("WebView", "Failed to load url ${request.url}")
+                            }
+                            return true
+                        }
+                        return false
+                    }
+                    return false
                 }
             }
             webChromeClient = myWebChromeClient
