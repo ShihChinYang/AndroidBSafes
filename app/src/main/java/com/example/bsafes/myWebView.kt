@@ -1,11 +1,13 @@
 package com.example.bsafes
 
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.res.AssetManager
 import android.net.Uri
 import android.util.Log
+import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.MimeTypeMap
 import android.webkit.ServiceWorkerClient
@@ -18,13 +20,19 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
+import kotlinx.coroutines.launch
 import java.net.URI
 
 class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
@@ -48,14 +56,23 @@ class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
 const val LOCAL_HOST = "https://android.bsafes.com"
 const val PAGE_URL = LOCAL_HOST+ "/logIn.html"
 
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("RestrictedApi")
 @Composable
-fun WebViewScreen() {
+fun MyWebView() {
     var myFilePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
-    val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenMultipleDocuments() )
-    { selectedUri ->
-        myFilePathCallback?.onReceiveValue(selectedUri.toTypedArray())
-        myFilePathCallback = null
+    var requiredMimeType = remember { mutableStateOf<Array<String>>(arrayOf())}
+    var openBottomSheet by rememberSaveable { mutableStateOf(false) }
+    val bottomSheetState = rememberModalBottomSheetState()
+    val coroutineScope = rememberCoroutineScope()
+    val hideModalBotttomSheet: () -> Unit = {
+        coroutineScope.launch { bottomSheetState.hide() }.invokeOnCompletion {
+            if(!bottomSheetState.isVisible){
+                openBottomSheet = false
+            }
+        }
     }
+
     val myWebChromeClient = object: WebChromeClient() {
         override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
             Log.d("WebView", consoleMessage.message())
@@ -74,8 +91,9 @@ fun WebViewScreen() {
                 val mimeTypes =
                     if (fileChooserParams.acceptTypes.size == 1 && fileChooserParams.acceptTypes[0] == ""
                     ) arrayOf("*/*") else fileChooserParams.acceptTypes!!
+                requiredMimeType.value = mimeTypes
                 myFilePathCallback = filePathCallback
-                launcher.launch(mimeTypes)
+                openBottomSheet = true
                 return true
             } else return false
         }
@@ -97,6 +115,10 @@ fun WebViewScreen() {
         serviceWorkerWebSettings.allowFileAccess  = true
 
         return@AndroidView WebView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowFileAccess = true
@@ -150,4 +172,18 @@ fun WebViewScreen() {
     }, update = {
             it.loadUrl(PAGE_URL)
     })
+    if(openBottomSheet) {
+        MediaChosser(
+            sheetState = bottomSheetState,
+            onDismissRequest = {
+                myFilePathCallback?.onReceiveValue(null)
+                openBottomSheet = false
+            },
+            onActionRequest = { value ->
+                myFilePathCallback?.onReceiveValue(value)
+                hideModalBotttomSheet()
+            },
+            requiredMimeType = requiredMimeType.value
+        )
+    }
 }

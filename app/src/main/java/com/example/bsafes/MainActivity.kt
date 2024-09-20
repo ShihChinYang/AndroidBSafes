@@ -14,11 +14,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        enableEdgeToEdge()
+        //enableEdgeToEdge()
         setContent {
             BSafesTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    WebViewScreen()
+                    MyWebView()
                 }
             }
         }
