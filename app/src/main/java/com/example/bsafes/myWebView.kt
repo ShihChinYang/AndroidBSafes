@@ -18,13 +18,10 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -173,7 +170,7 @@ fun MyWebView() {
             it.loadUrl(PAGE_URL)
     })
     if(openBottomSheet) {
-        MediaChosser(
+        MediaChooser(
             sheetState = bottomSheetState,
             onDismissRequest = {
                 myFilePathCallback?.onReceiveValue(null)
