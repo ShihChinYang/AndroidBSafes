@@ -93,9 +93,23 @@ fun MediaChooser(
         mediaUri.value = createFile("jpg")
         cameraLauncherForImage.launch(mediaUri.value!!)
     }
+    val cameraLauncherForVideo = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CaptureVideo()) {
+        if(it) {
+            Log.d(TAG, "Video captured")
+            onActionRequest(arrayOf(mediaUri.value!!))
+        } else {
+            Log.d(TAG, "Video not captured")
+            onDismissRequest()
+        }
+    }
+    fun launchCameraForVideo() {
+        mediaUri.value = createFile("mp4")
+        cameraLauncherForVideo.launch(mediaUri.value!!)
+    }
     val size = 80.dp
     val coroutineScope = rememberCoroutineScope()
-    if(requiredMimeType[0].contains("image/")) {
+    if(requiredMimeType[0].contains("image/") || requiredMimeType[0].contains("video/")) {
         ModalBottomSheet(sheetState = sheetState, onDismissRequest = onDismissRequest) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -136,6 +150,13 @@ fun MediaChooser(
                                 launchCameraForImage()
                             } else {
                                 afterPermissionGrantAction.value = ::launchCameraForImage
+                                cameraPermission.launchPermissionRequest()
+                            }
+                        } else {
+                            if(cameraPermission.status.isGranted) {
+                                launchCameraForVideo()
+                            } else {
+                                afterPermissionGrantAction.value = ::launchCameraForVideo
                                 cameraPermission.launchPermissionRequest()
                             }
                         }
