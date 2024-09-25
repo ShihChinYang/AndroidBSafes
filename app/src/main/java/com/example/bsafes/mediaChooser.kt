@@ -35,6 +35,7 @@ import androidx.core.content.FileProvider
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.launch
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -56,6 +57,10 @@ fun MediaChooser(
     }
     val visualMediaPickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia()) { selectedUri ->
+        handleSelectedUri(selectedUri)
+    }
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()) { selectedUri ->
         handleSelectedUri(selectedUri)
     }
     val authority = "com.bsafes.android.file_provider"
@@ -179,6 +184,8 @@ fun MediaChooser(
             }
         }
     } else {
-
+        coroutineScope.launch {
+            filePickerLauncher.launch(requiredMimeType)
+        }
     }
 }
