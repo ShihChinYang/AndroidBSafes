@@ -155,14 +155,36 @@ fun MyWebView() {
             if(chunkIndex == 0) {
                 arrayOfByteArrarys.value = arrayOfNulls(numberOfChunks)
             }
-            val stringLength = string.length
-            val buffer = ByteBuffer.allocate(stringLength)
-            for(i in 0..stringLength-1) {
-                buffer.put(string[i].code.toByte())
+            coroutineScope.launch {
+                withContext(Dispatchers.IO) {
+                    val stringLength = string.length
+                    val buffer = ByteBuffer.allocate(stringLength)
+                    for(i in 0..stringLength-1) {
+                        buffer.put(string[i].code.toByte())
+                    }
+                    val bytes = buffer.array()
+                    arrayOfByteArrarys.value!![chunkIndex] = bytes
+                    if(chunkIndex == numberOfChunks-1) {
+                        val uri = Uri.parse(uriString)
+                        uri.let {
+                            contentResolver.openOutputStream(it)?.let { outputStream ->
+                                for (i in 0..numberOfChunks - 1) {
+                                    val bytes = arrayOfByteArrarys.value!![i]
+                                    outputStream.write(bytes)
+                                }
+                                outputStream.flush()
+                                outputStream.close()
+                            }
+                        }
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    if(chunkIndex == numberOfChunks-1) {
+                        Toast.makeText(context, "File saved!", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
-            val bytes = buffer.array()
-            arrayOfByteArrarys.value!![chunkIndex] = bytes
-            if(chunkIndex == numberOfChunks-1){
+            /*if(chunkIndex == numberOfChunks-1){
                 val uri = Uri.parse(uriString)
                 uri.let {
                     contentResolver.openOutputStream(it)?.let { outputStream ->
@@ -179,7 +201,7 @@ fun MyWebView() {
                         }
                     }
                 }
-            }
+            }*/
         }
 
         @JavascriptInterface
