@@ -21,6 +21,8 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -30,13 +32,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URI
+import java.nio.ByteBuffer
 
 class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
     private val assetManager: AssetManager = context.getAssets()
@@ -63,11 +69,15 @@ const val PAGE_URL = LOCAL_HOST+ "/logIn.html"
 @SuppressLint("RestrictedApi")
 @Composable
 fun MyWebView() {
+    var webView = remember { mutableStateOf<WebView?>(null) }
     var myFilePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     val requiredMimeType = remember { mutableStateOf<Array<String>>(arrayOf())}
+    val downloadedFileUri = remember { mutableStateOf<Uri?>(null)}
+    val arrayOfByteArrarys = remember { mutableStateOf<Array<ByteArray?>?>(null)}
     var openBottomSheet by rememberSaveable { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState()
     val coroutineScope = rememberCoroutineScope()
+
     val hideModalBotttomSheet: () -> Unit = {
         coroutineScope.launch { bottomSheetState.hide() }.invokeOnCompletion {
             if(!bottomSheetState.isVisible){
@@ -111,10 +121,70 @@ fun MyWebView() {
             afterPermissionGrantAction.value = null
         }
     )
+    val contentResolver = LocalContext.current.contentResolver
+    val fileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        val uri = data?.data
+        val uriString = uri.toString()
+        downloadedFileUri.value = uri
+        webView.value?.evaluateJavascript("window.bsafesAndroid.downloadAnAttachmentOnAndroid(`$uriString`)", null)
+        //webView.value?.evaluateJavascript("alert('hello')", null)
+    }
+    fun createNewFileIntent(fileName: String, fileType:String): Intent {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply{
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = fileType
+            putExtra(Intent.EXTRA_TITLE, fileName )
+        }
+        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        intent.setFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        intent.setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        return intent
+    }
+
     class MyJavascriptInterface(private val context:Context) {
         @JavascriptInterface
-        fun saveBinaryStringAsFile(string: String, fileName:String, type: String ) {
-            fun saveToFile() {
+        fun getDownloadedFileUri(fileName:String, fileType: String) {
+            val intent = createNewFileIntent(fileName, fileType)
+            fileLauncher.launch(intent)
+        }
+        @JavascriptInterface
+        fun addAChunkToFile(chunkIndex: Int, numberOfChunks: Int, string: String, uriString: String) {
+            if(chunkIndex == 0) {
+                arrayOfByteArrarys.value = arrayOfNulls(numberOfChunks)
+            }
+            val stringLength = string.length
+            val buffer = ByteBuffer.allocate(stringLength)
+            for(i in 0..stringLength-1) {
+                buffer.put(string[i].code.toByte())
+            }
+            val bytes = buffer.array()
+            arrayOfByteArrarys.value!![chunkIndex] = bytes
+            if(chunkIndex == numberOfChunks-1){
+                val uri = Uri.parse(uriString)
+                uri.let {
+                    contentResolver.openOutputStream(it)?.let { outputStream ->
+                        coroutineScope.launch {
+                            withContext(Dispatchers.IO) {
+                                Log.d("WebView", "outputStream: $outputStream")
+                                for(i in 0..numberOfChunks-1) {
+                                    val bytes = arrayOfByteArrarys.value!![i]
+                                    outputStream.write(bytes)
+                                }
+                                outputStream.flush()
+                                outputStream.close()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun saveBinaryStringAsFile(string: String, uriString: String) {
+           /* fun saveToFile() {
                 val stringLength = string.length
                 Toast.makeText(context, "string length: $stringLength", Toast.LENGTH_SHORT).show()
             }
@@ -123,6 +193,25 @@ fun MyWebView() {
             } else {
                 afterPermissionGrantAction.value = ::saveToFile
                 writeExternalStoragePermission.launchPermissionRequest()
+            }*/
+            val uri = Uri.parse(uriString)
+            uri.let {
+                contentResolver.openOutputStream(it)?.let { outputStream ->
+                    coroutineScope.launch {
+                        withContext(Dispatchers.IO) {
+                            Log.d("WebView", "outputStream: $outputStream")
+                            val stringLength = string.length
+                            val buffer = ByteBuffer.allocate(stringLength)
+                            for(i in 0..stringLength-1) {
+                                buffer.put(string[i].code.toByte())
+                            }
+                            val bytes = buffer.array()
+                            outputStream.write(bytes)
+                            outputStream.flush()
+                            outputStream.close()
+                        }
+                    }
+                }
             }
         }
     }
@@ -201,6 +290,7 @@ fun MyWebView() {
             webChromeClient = myWebChromeClient
         }
     }, update = {
+        webView.value = it
         it.loadUrl(PAGE_URL)
         it.addJavascriptInterface(MyJavascriptInterface(it.context), "Android")
         if(writeExternalStoragePermission.status.isGranted) {
