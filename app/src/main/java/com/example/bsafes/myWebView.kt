@@ -158,12 +158,13 @@ fun MyWebView() {
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
                     val stringLength = string.length
-                    val buffer = ByteBuffer.allocate(stringLength)
+                    val thisByteArrary = string.toByteArray(Charsets.ISO_8859_1)
+                    /*val buffer = ByteBuffer.allocate(stringLength)
                     for(i in 0..stringLength-1) {
                         buffer.put(string[i].code.toByte())
                     }
-                    val bytes = buffer.array()
-                    arrayOfByteArrarys.value!![chunkIndex] = bytes
+                    val bytes = buffer.array()*/
+                    arrayOfByteArrarys.value!![chunkIndex] = thisByteArrary
                     if(chunkIndex == numberOfChunks-1) {
                         val uri = Uri.parse(uriString)
                         uri.let {
