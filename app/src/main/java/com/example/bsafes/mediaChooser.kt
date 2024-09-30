@@ -35,6 +35,7 @@ import androidx.core.content.FileProvider
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -44,7 +45,8 @@ fun MediaChooser(
     sheetState: SheetState = rememberModalBottomSheetState( skipPartiallyExpanded = true),
     onDismissRequest: () -> Unit = {},
     onActionRequest: (Array<Uri>) -> Unit = {},
-    requiredMimeType: Array<String> = arrayOf()
+    requiredMimeType: Array<String> = arrayOf(),
+    openSnackbarForCameraPermission: () -> Unit
 ) {
     val TAG = "mediaChooser"
     val context = LocalContext.current
@@ -77,9 +79,11 @@ fun MediaChooser(
     val afterPermissionGrantAction = remember {mutableStateOf<(() -> Unit)?>(null)}
     val cameraPermission = rememberPermissionState(
         permission = android.Manifest.permission.CAMERA,
-        onPermissionResult = { result ->
-            if(result) {
+        onPermissionResult = { isGranted ->
+            if(isGranted) {
                 afterPermissionGrantAction.value?.let {action -> action()}
+            } else {
+                onDismissRequest()
             }
             afterPermissionGrantAction.value = null
         }
@@ -114,6 +118,25 @@ fun MediaChooser(
     }
     val size = 80.dp
     val coroutineScope = rememberCoroutineScope()
+    fun checkAndRequestPermission() {
+        if(cameraPermission.status.isGranted) {
+            Log.d(TAG, "Camera permission granted")
+            afterPermissionGrantAction.value?.let { action ->
+                action()
+            }
+        } else {
+            Log.d(TAG, "Requesting camera permission")
+            if(cameraPermission.status.shouldShowRationale) {
+                Log.d(TAG, "Show rational")
+                openSnackbarForCameraPermission()
+                onDismissRequest()
+            } else {
+                Log.d(TAG, "Request permission")
+                val res = cameraPermission.launchPermissionRequest()
+                Log.d(TAG, "Permission result = $res")
+            }
+        }
+    }
     if(requiredMimeType[0].contains("image/") || requiredMimeType[0].contains("video/")) {
         ModalBottomSheet(sheetState = sheetState, onDismissRequest = onDismissRequest) {
             Row(
@@ -151,19 +174,11 @@ fun MediaChooser(
                 Column {
                     IconButton(onClick = {
                         if(requiredMimeType[0].contains("image/")) {
-                            if(cameraPermission.status.isGranted) {
-                                launchCameraForImage()
-                            } else {
-                                afterPermissionGrantAction.value = ::launchCameraForImage
-                                cameraPermission.launchPermissionRequest()
-                            }
+                            afterPermissionGrantAction.value = ::launchCameraForImage
+                            checkAndRequestPermission()
                         } else {
-                            if(cameraPermission.status.isGranted) {
-                                launchCameraForVideo()
-                            } else {
-                                afterPermissionGrantAction.value = ::launchCameraForVideo
-                                cameraPermission.launchPermissionRequest()
-                            }
+                            afterPermissionGrantAction.value = ::launchCameraForVideo
+                            checkAndRequestPermission()
                         }
                     }, modifier = Modifier.size(size)){
                         Icon(

@@ -1,12 +1,14 @@
 package com.example.bsafes
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.res.AssetManager
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
@@ -23,7 +25,12 @@ import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,17 +39,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URI
-import java.nio.ByteBuffer
 
 class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
     private val assetManager: AssetManager = context.getAssets()
@@ -65,10 +70,24 @@ class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
 const val LOCAL_HOST = "https://android.bsafes.com"
 const val PAGE_URL = LOCAL_HOST+ "/logIn.html"
 
+@Composable
+fun MyWebViewComposable() {
+    val snackbarHostState = remember { SnackbarHostState() }
+    Scaffold(
+        Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState)}) { innerPadding ->
+        MyWebView(innerPadding, snackbarHostState)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @SuppressLint("RestrictedApi")
 @Composable
-fun MyWebView() {
+fun MyWebView(
+    innerPadding: androidx.compose.foundation.layout.PaddingValues,
+    snackbarHostState: SnackbarHostState
+) {
+    val rootTag = "MyWebView"
     var webView = remember { mutableStateOf<WebView?>(null) }
     var myFilePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     val requiredMimeType = remember { mutableStateOf<Array<String>>(arrayOf())}
@@ -85,10 +104,9 @@ fun MyWebView() {
             }
         }
     }
-
     val myWebChromeClient = object: WebChromeClient() {
         override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-            Log.d("WebView", consoleMessage.message())
+            Log.d(rootTag, consoleMessage.message())
             return true
         }
 
@@ -97,8 +115,8 @@ fun MyWebView() {
             filePathCallback: ValueCallback<Array<Uri>>?,
             fileChooserParams: FileChooserParams?
         ): Boolean {
-            Log.d("WebView", fileChooserParams?.mode.toString())
-            Log.d("WebView", fileChooserParams?.acceptTypes.toString())
+            Log.d(rootTag, fileChooserParams?.mode.toString())
+            Log.d(rootTag, fileChooserParams?.acceptTypes.toString())
 
             if(fileChooserParams?.acceptTypes?.isNotEmpty() == true) {
                 val mimeTypes =
@@ -111,16 +129,6 @@ fun MyWebView() {
             } else return false
         }
     }
-    val afterPermissionGrantAction = remember {mutableStateOf<(() -> Unit)?>(null)}
-    val writeExternalStoragePermission = rememberPermissionState(
-        permission = android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        onPermissionResult = {result->
-            if(result) {
-                afterPermissionGrantAction.value?.let {action -> action()}
-            }
-            afterPermissionGrantAction.value = null
-        }
-    )
     val contentResolver = LocalContext.current.contentResolver
     val fileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -130,7 +138,6 @@ fun MyWebView() {
         val uriString = uri.toString()
         downloadedFileUri.value = uri
         webView.value?.evaluateJavascript("window.bsafesAndroid.downloadAnAttachmentOnAndroid(`$uriString`)", null)
-        //webView.value?.evaluateJavascript("alert('hello')", null)
     }
     fun createNewFileIntent(fileName: String, fileType:String): Intent {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply{
@@ -157,13 +164,7 @@ fun MyWebView() {
             }
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
-                    val stringLength = string.length
                     val thisByteArrary = string.toByteArray(Charsets.ISO_8859_1)
-                    /*val buffer = ByteBuffer.allocate(stringLength)
-                    for(i in 0..stringLength-1) {
-                        buffer.put(string[i].code.toByte())
-                    }
-                    val bytes = buffer.array()*/
                     arrayOfByteArrarys.value!![chunkIndex] = thisByteArrary
                     if(chunkIndex == numberOfChunks-1) {
                         val uri = Uri.parse(uriString)
@@ -185,57 +186,10 @@ fun MyWebView() {
                     }
                 }
             }
-            /*if(chunkIndex == numberOfChunks-1){
-                val uri = Uri.parse(uriString)
-                uri.let {
-                    contentResolver.openOutputStream(it)?.let { outputStream ->
-                        coroutineScope.launch {
-                            withContext(Dispatchers.IO) {
-                                Log.d("WebView", "outputStream: $outputStream")
-                                for(i in 0..numberOfChunks-1) {
-                                    val bytes = arrayOfByteArrarys.value!![i]
-                                    outputStream.write(bytes)
-                                }
-                                outputStream.flush()
-                                outputStream.close()
-                            }
-                        }
-                    }
-                }
-            }*/
         }
-
         @JavascriptInterface
-        fun saveBinaryStringAsFile(string: String, uriString: String) {
-           /* fun saveToFile() {
-                val stringLength = string.length
-                Toast.makeText(context, "string length: $stringLength", Toast.LENGTH_SHORT).show()
-            }
-            if(writeExternalStoragePermission.status.isGranted) {
-                saveToFile()
-            } else {
-                afterPermissionGrantAction.value = ::saveToFile
-                writeExternalStoragePermission.launchPermissionRequest()
-            }*/
-            val uri = Uri.parse(uriString)
-            uri.let {
-                contentResolver.openOutputStream(it)?.let { outputStream ->
-                    coroutineScope.launch {
-                        withContext(Dispatchers.IO) {
-                            Log.d("WebView", "outputStream: $outputStream")
-                            val stringLength = string.length
-                            val buffer = ByteBuffer.allocate(stringLength)
-                            for(i in 0..stringLength-1) {
-                                buffer.put(string[i].code.toByte())
-                            }
-                            val bytes = buffer.array()
-                            outputStream.write(bytes)
-                            outputStream.flush()
-                            outputStream.close()
-                        }
-                    }
-                }
-            }
+        fun deleteTemporaryFiles() {
+            deleteTemporaryMediaFiles(context)
         }
     }
     AndroidView(factory = { context ->
@@ -301,7 +255,7 @@ fun MyWebView() {
                             try {
                                 context.startActivity(intent)
                             } catch(exception: ActivityNotFoundException) {
-                                Log.d("WebView", "Failed to load url ${request.url}")
+                                Log.d(rootTag, "Failed to load url ${request.url}")
                             }
                             return true
                         }
@@ -311,45 +265,46 @@ fun MyWebView() {
                 }
             }
             webChromeClient = myWebChromeClient
+        }.also {
+            webView.value = it
+            it.loadUrl(PAGE_URL)
+            it.addJavascriptInterface(MyJavascriptInterface(it.context), "Android")
         }
     }, update = {
-        webView.value = it
-        it.loadUrl(PAGE_URL)
-        it.addJavascriptInterface(MyJavascriptInterface(it.context), "Android")
-        if(writeExternalStoragePermission.status.isGranted) {
-            Log.d("WebView", "Permission is granted")
-        } else {
-            //afterPermissionGrantAction.value = ::saveToFile
-            Log.d("WebView", "Permission is not granted")
-            writeExternalStoragePermission.launchPermissionRequest()
-        }
-        /*
-            it.setDownloadListener({ url, userAgent, contentDisposition, mimeType, contentLength ->
-                val request = DownloadManager.Request(Uri.parse(url))
-                request.setMimeType(mimeType)
-                request.addRequestHeader("cookie", android.webkit.CookieManager.getInstance().getCookie(url))
-                request.addRequestHeader("User-Agent", userAgent)
-                request.setDescription("Downloading file...")
-                request.setTitle(URLUtil.guessFileName(url, contentDisposition, mimeType))
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                request.setDestinationInExternalFilesDir(it.context, Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(url, contentDisposition, mimeType))
-                val dm = it.context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                dm.enqueue(request)
-                Toast.makeText(it.context, "Downloading File", Toast.LENGTH_LONG).show()
-            })*/
+
     })
+    val context = LocalContext.current
+    fun openSnackbarForCameraPermission() {
+        coroutineScope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = "The app needs camera permission to take a photo/video",
+                actionLabel = "Go to settings",
+                withDismissAction = true
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                val intent = Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", context.packageName, null)
+                )
+                (context as Activity).startActivity(intent)
+            }
+        }
+    }
     if(openBottomSheet) {
         MediaChooser(
             sheetState = bottomSheetState,
             onDismissRequest = {
                 myFilePathCallback?.onReceiveValue(null)
-                openBottomSheet = false
+                hideModalBotttomSheet()
             },
             onActionRequest = { value ->
                 myFilePathCallback?.onReceiveValue(value)
                 hideModalBotttomSheet()
             },
-            requiredMimeType = requiredMimeType.value
+            requiredMimeType = requiredMimeType.value,
+            openSnackbarForCameraPermission = {
+                openSnackbarForCameraPermission()
+            }
         )
     }
 }

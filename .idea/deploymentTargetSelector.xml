@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="BSafes">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-09-27T14:23:26.844702Z">
+        <DropdownSelection timestamp="2024-09-30T01:47:04.474577Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/macbookpro-syang/.android/avd/Pixel_6_API_26.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/macbookpro-syang/.android/avd/Pixel_6_API_35.avd" />
             </handle>
           </Target>
         </DropdownSelection>
