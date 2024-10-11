@@ -1,5 +1,9 @@
 [versions]
+accompanistPermissions = "0.36.0"
 agp = "8.5.2"
+billing = "7.1.1"
+billingKtx = "7.0.0"
+billingVersion = "7.0.0"
 kotlin = "1.9.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -11,7 +15,12 @@ composeBom = "2024.04.01"
 webkit = "1.11.0"
 
 [libraries]
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
+billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
+billing-ktx-v700 = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
+billingclinet-billing = { module = "com.android.billingclinet:billing", version.ref = "billingVersion" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

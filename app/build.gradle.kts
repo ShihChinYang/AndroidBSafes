@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.bsafes"
+        applicationId = "com.bsafes.android.bsafes"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -54,6 +54,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.billing.ktx)
+    implementation(libs.billing)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -63,7 +65,10 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.webkit)
-    implementation("com.google.accompanist:accompanist-permissions:0.36.0")
+    implementation(libs.accompanist.permissions)
+    val billing_version = "7.0.0"
+    implementation("com.android.billingclient:billing:$billing_version")
+    implementation(libs.billing.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
