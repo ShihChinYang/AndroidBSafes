@@ -2,6 +2,7 @@ package com.example.bsafes
 
 import android.app.Activity
 import android.util.Log
+import android.webkit.WebView
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.update
 
 class MyBillingClient(private val activity:Activity) {
     private val tag = "MyBillingClient"
+    private var webView: WebView? = null
     private val purchasesList = MutableStateFlow<List<String>>(emptyList())
     private val purchasesUpdatedListener = PurchasesUpdatedListener { purchasesResult, purchases ->
         if(purchasesResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
@@ -27,9 +29,13 @@ class MyBillingClient(private val activity:Activity) {
             }
         } else if (purchasesResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
             Log.d(tag, "User canceled the purchase")
+            val thisScript = "window.bsafesAndroid.transactionWebCall({status: 'canceled'})"
+            callWebViewScript(thisScript)
         } else {
             Log.d(tag, "Billing error: ${purchasesResult.responseCode}")
             Log.d(tag, "Billing error: ${purchasesResult.debugMessage}")
+            val thisScript = "window.bsafesAndroid.transactionWebCall({status: 'error', error:'${purchasesResult.debugMessage}'})"
+            callWebViewScript(thisScript)
         }
     }
     private val pendingPurchasesParams: PendingPurchasesParams = PendingPurchasesParams.newBuilder()
@@ -40,14 +46,26 @@ class MyBillingClient(private val activity:Activity) {
         .enablePendingPurchases(pendingPurchasesParams)
         .build()
     private fun handlePurchase(purchase: Purchase) {
+        Log.d(tag, "handlePurchase: ${purchase}")
+        val purchaseString = purchase.originalJson //"orderId:${purchase.orderId}, {purchaseTime:${purchase.purchaseTime}, purchaseToken:${purchase.purchaseToken}}"
         val consumeParams = ConsumeParams.newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
             .build()
         val listener = ConsumeResponseListener{result, s->}
         billingClient.consumeAsync(consumeParams, listener)
+        val thisScript = "window.bsafesAndroid.transactionWebCall({status: 'ok', purchase: '${purchaseString}'})"
+        callWebViewScript(thisScript)
     }
-    fun setup() {
+    private fun callWebViewScript(script: String) {
+        webView!!.post(
+            Runnable {
+                webView!!.evaluateJavascript(script, null)
+            }
+        )
+    }
+    fun setup(thisWebView: WebView) {
         Log.d(tag, "Billing client ready ${billingClient.isReady}")
+        webView = thisWebView
         billingClient.startConnection(object: BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
                 if(result.responseCode == BillingClient.BillingResponseCode.OK){
@@ -88,10 +106,14 @@ class MyBillingClient(private val activity:Activity) {
                 }
                 BillingClient.BillingResponseCode.USER_CANCELED -> {
                     Log.d(tag, "User canceld the purchase")
+                    val thisScript = "window.bsafesAndroid.transactionWebCall({status: 'canceled'})"
+                    callWebViewScript(thisScript)
                 }
                 else -> {
                     Log.d(tag, "Billing error: ${result.responseCode}")
                     Log.d(tag, "Billing error: ${result.debugMessage}")
+                    val thisScript = "window.bsafesAndroid.transactionWebCall({status: 'error', error:'${result.debugMessage}'})"
+                    callWebViewScript(thisScript)
                 }
             }
         }
@@ -99,6 +121,7 @@ class MyBillingClient(private val activity:Activity) {
     }
     fun purchase(productId: String) {
         Log.d(tag, "Purchase prodcut:")
+        val thisScript = "Purchase ${productId}"
         val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(

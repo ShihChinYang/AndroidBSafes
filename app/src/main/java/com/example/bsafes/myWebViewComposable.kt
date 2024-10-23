@@ -273,7 +273,7 @@ fun MyWebView(
             webView.value = it
             it.loadUrl(PAGE_URL)
             it.addJavascriptInterface(MyJavascriptInterface(it.context, myBillingClient), "Android")
-            myBillingClient.setup()
+            myBillingClient.setup(it)
         }
     }, update = {
 
