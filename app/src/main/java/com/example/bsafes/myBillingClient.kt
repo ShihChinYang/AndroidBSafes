@@ -48,11 +48,11 @@ class MyBillingClient(private val activity:Activity) {
     private fun handlePurchase(purchase: Purchase) {
         Log.d(tag, "handlePurchase: ${purchase}")
         val purchaseString = purchase.originalJson //"orderId:${purchase.orderId}, {purchaseTime:${purchase.purchaseTime}, purchaseToken:${purchase.purchaseToken}}"
-        val consumeParams = ConsumeParams.newBuilder()
+        /*val consumeParams = ConsumeParams.newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
             .build()
         val listener = ConsumeResponseListener{result, s->}
-        billingClient.consumeAsync(consumeParams, listener)
+        billingClient.consumeAsync(consumeParams, listener)*/
         val thisScript = "window.bsafesAndroid.transactionWebCall({status: 'ok', purchase: '${purchaseString}'})"
         callWebViewScript(thisScript)
     }
