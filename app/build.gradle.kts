@@ -15,8 +15,8 @@ android {
         applicationId = "com.bsafes.android.bsafes"
         minSdk = 26
         targetSdk = 34
-        versionCode = 115
-        versionName = "1.15"
+        versionCode = 119
+        versionName = "1.19"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

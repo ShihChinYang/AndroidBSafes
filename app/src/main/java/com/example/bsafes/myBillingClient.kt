@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.update
 class MyBillingClient(private val activity:Activity) {
     private val tag = "MyBillingClient"
     private var webView: WebView? = null
+    private var pendingPurchase: Purchase? = null
     private val purchasesList = MutableStateFlow<List<String>>(emptyList())
     private val purchasesUpdatedListener = PurchasesUpdatedListener { purchasesResult, purchases ->
         if(purchasesResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
@@ -47,14 +48,14 @@ class MyBillingClient(private val activity:Activity) {
         .build()
     private fun handlePurchase(purchase: Purchase) {
         Log.d(tag, "handlePurchase: ${purchase}")
+        pendingPurchase = purchase
         val purchaseString = purchase.originalJson //"orderId:${purchase.orderId}, {purchaseTime:${purchase.purchaseTime}, purchaseToken:${purchase.purchaseToken}}"
-        /*val consumeParams = ConsumeParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-        val listener = ConsumeResponseListener{result, s->}
-        billingClient.consumeAsync(consumeParams, listener)*/
         val thisScript = "window.bsafesAndroid.transactionWebCall({status: 'ok', purchase: '${purchaseString}'})"
         callWebViewScript(thisScript)
+    }
+    private fun queuePendingPurchase(purchase: Purchase) {
+        Log.d(tag, "queuePendingPurchase: ${purchase}")
+        pendingPurchase = purchase
     }
     private fun callWebViewScript(script: String) {
         webView!!.post(
@@ -94,7 +95,7 @@ class MyBillingClient(private val activity:Activity) {
                     for(purchase in purchases) {
                         Log.d(tag, "Purchase: ${purchase.purchaseState}")
                         if(purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                            this@MyBillingClient.handlePurchase(purchase)
+                            this@MyBillingClient.queuePendingPurchase(purchase)
                             purchasesList.update {
                                 val newList = it.toMutableList()
                                 newList.add(purchase.products[0].toString())
@@ -149,6 +150,25 @@ class MyBillingClient(private val activity:Activity) {
                     billingClient.launchBillingFlow(activity, billingFlowParams)
                 }
             }
+        }
+    }
+    fun finishPurchase() {
+        val consumeParams = ConsumeParams.newBuilder()
+            .setPurchaseToken(pendingPurchase!!.purchaseToken)
+            .build()
+        val listener = ConsumeResponseListener{billingResult, s->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                // Handle the success of the consume operation.
+                pendingPurchase = null
+            }
+        }
+        billingClient.consumeAsync(consumeParams, listener)
+    }
+    fun checkPendingPurchase(): String {
+        if(pendingPurchase != null) {
+            return pendingPurchase!!.originalJson
+        } else {
+            return "null"
         }
     }
 }

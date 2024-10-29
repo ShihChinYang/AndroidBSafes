@@ -199,6 +199,14 @@ fun MyWebView(
         fun initiatePurchase(productId: String) {
             billingClient.purchase(productId)
         }
+        @JavascriptInterface
+        fun finishPurchase(productId: String) {
+            billingClient.finishPurchase()
+        }
+        @JavascriptInterface
+        fun checkPendingPurchase(): String {
+            return billingClient.checkPendingPurchase()
+        }
     }
     AndroidView(factory = { context ->
         val assetLoader = WebViewAssetLoader.Builder()
