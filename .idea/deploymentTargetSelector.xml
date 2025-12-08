@@ -2,12 +2,12 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="BSafes">
+      <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-10-29T05:12:25.298200Z">
+        <DropdownSelection timestamp="2025-12-05T05:23:11.284151Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/macbookpro-syang/.android/avd/Pixel_6_API_26.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/macbookpro-syang/.android/avd/Pixel_6_API_35.avd" />
             </handle>
           </Target>
         </DropdownSelection>

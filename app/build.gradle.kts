@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.example.bsafes"
-    compileSdk = 34
+    compileSdk = 35
 
     androidResources {
         ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
@@ -14,9 +14,9 @@ android {
     defaultConfig {
         applicationId = "com.bsafes.android.bsafes"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 119
-        versionName = "1.19"
+        targetSdk = 35
+        versionCode = 123
+        versionName = "1.23"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
