@@ -2,6 +2,7 @@ package com.example.bsafes
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,8 @@ import android.util.Log
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
 import android.webkit.MimeTypeMap
 import android.webkit.ServiceWorkerClient
 import android.webkit.ServiceWorkerController
@@ -21,7 +24,9 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,7 +73,8 @@ class myPathHandler(context: Context) : WebViewAssetLoader.PathHandler {
 }
 const val BUILD = "1.1"
 const val LOCAL_HOST = "https://android.bsafes.com"
-const val PAGE_URL = LOCAL_HOST+ "/logIn.html"
+const val PAGE_URL = LOCAL_HOST + "/logIn.html"
+
 
 @Composable
 fun MyWebViewComposable() {
@@ -108,6 +114,18 @@ fun MyWebView(
             }
         }
     }
+    BackHandler(enabled = webView.value != null) {
+        webView.value?.evaluateJavascript(
+            """
+            (function(){
+                if (window.bsafesAndroid && typeof window.bsafesAndroid.onBackButtonPressed === 'function') {
+                    window.bsafesAndroid.onBackButtonPressed();
+                }
+            })();
+            """.trimIndent(),
+            null
+        )
+    }
     val myWebChromeClient = object: WebChromeClient() {
         override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
             Log.d(rootTag, consoleMessage.message())
@@ -131,6 +149,55 @@ fun MyWebView(
                 openBottomSheet = true
                 return true
             } else return false
+        }
+
+        override fun onJsAlert(
+            view: WebView?,
+            url: String?,
+            message: String?,
+            result: JsResult
+        ): Boolean {
+            AlertDialog.Builder(view?.context)
+                .setMessage(message)
+                .setPositiveButton("OK") { _, _ -> result.confirm() }
+                .setOnCancelListener { result.cancel() }
+                .show()
+            return true
+        }
+
+        override fun onJsConfirm(
+            view: WebView?,
+            url: String?,
+            message: String?,
+            result: JsResult
+        ): Boolean {
+            AlertDialog.Builder(view?.context)
+                .setMessage(message)
+                .setPositiveButton("OK") { _, _ -> result.confirm() }
+                .setNegativeButton("Cancel") { _, _ -> result.cancel() }
+                .setOnCancelListener { result.cancel() }
+                .show()
+            return true
+        }
+
+        override fun onJsPrompt(
+            view: WebView?,
+            url: String?,
+            message: String?,
+            defaultValue: String?,
+            result: JsPromptResult
+        ): Boolean {
+            val editText = EditText(view?.context).apply {
+                setText(defaultValue)
+            }
+            AlertDialog.Builder(view?.context)
+                .setMessage(message)
+                .setView(editText)
+                .setPositiveButton("OK") { _, _ -> result.confirm(editText.text.toString()) }
+                .setNegativeButton("Cancel") { _, _ -> result.cancel() }
+                .setOnCancelListener { result.cancel() }
+                .show()
+            return true
         }
     }
     val contentResolver = LocalContext.current.contentResolver
@@ -207,6 +274,10 @@ fun MyWebView(
         fun checkPendingPurchase(): String {
             return billingClient.checkPendingPurchase()
         }
+        @JavascriptInterface
+        fun closeApp() {
+            (context as? Activity)?.finish()
+        }
     }
     AndroidView(factory = { context ->
         val assetLoader = WebViewAssetLoader.Builder()
@@ -241,13 +312,17 @@ fun MyWebView(
                     view: WebView?,
                     request: WebResourceRequest
                 ): WebResourceResponse? {
-                    val interceptedWebResponse = assetLoader.shouldInterceptRequest(request.url)
-                    interceptedWebResponse?.let {
-                        if(request.url.toString().endsWith("js", true)) {
+                    val intercepted = assetLoader.shouldInterceptRequest(request.url)
+                    intercepted?.let {
+                        if (request.url.toString().endsWith("js", true)) {
                             it.mimeType = "text/javascript"
                         }
+//                        else if (request.url.toString().endsWith("js.map", true)) {
+//                            it.mimeType = "application/json"
+//                        }
                     }
-                    return interceptedWebResponse
+                    
+                    return intercepted
                 }
 
                 override fun shouldOverrideUrlLoading(
