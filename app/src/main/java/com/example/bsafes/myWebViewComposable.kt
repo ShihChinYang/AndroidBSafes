@@ -280,6 +280,11 @@ fun MyWebView(
         }
     }
     AndroidView(factory = { context ->
+        val variableName = context.getString(R.string.product_variable_name)
+        val product = if (variableName.isNotEmpty())
+            BsafesProduct(variableName, context.getString(R.string.app_name), context.getString(R.string.product_sub_title))
+        else null
+
         val assetLoader = WebViewAssetLoader.Builder()
             .setDomain("android.bsafes.com")
             .addPathHandler("/", myPathHandler(context))
@@ -321,7 +326,7 @@ fun MyWebView(
 //                            it.mimeType = "application/json"
 //                        }
                     }
-                    
+
                     return intercepted
                 }
 

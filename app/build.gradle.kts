@@ -24,6 +24,26 @@ android {
         }
     }
 
+    flavorDimensions += "product"
+    productFlavors {
+        create("bsafes") {
+            dimension = "product"
+            applicationId = "com.bsafes.android.bsafes"
+        }
+        create("AS06") {
+            dimension = "product"
+            applicationId = "com.bsafes.android.AS06"
+        }
+        create("AS07") {
+            dimension = "product"
+            applicationId = "com.bsafes.android.AS07"
+        }
+        create("AS04") {
+            dimension = "product"
+            applicationId = "com.bsafes.android.AS04"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
