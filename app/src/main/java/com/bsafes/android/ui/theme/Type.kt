@@ -1,4 +1,4 @@
-package com.example.bsafes.ui.theme
+package com.bsafes.android.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

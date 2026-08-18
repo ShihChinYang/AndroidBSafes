@@ -1,4 +1,4 @@
-package com.example.bsafes
+package com.bsafes.android
 
 import android.net.Uri
 import android.util.Log

@@ -1,4 +1,4 @@
-package com.example.bsafes
+package com.bsafes.android
 
 import android.app.Activity
 import android.util.Log

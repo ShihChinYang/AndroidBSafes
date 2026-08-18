@@ -1,4 +1,4 @@
-package com.example.bsafes
+package com.bsafes.android
 
 import android.app.ActivityManager
 import android.os.Bundle
@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.bsafes.ui.theme.BSafesTheme
+import com.bsafes.android.ui.theme.BSafesTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

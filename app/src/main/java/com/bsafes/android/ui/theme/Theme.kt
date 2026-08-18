@@ -1,4 +1,4 @@
-package com.example.bsafes.ui.theme
+package com.bsafes.android.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

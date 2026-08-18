@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bsafes"
+    namespace = "com.bsafes.android"
     compileSdk = 35
 
     androidResources {

@@ -1,4 +1,4 @@
-package com.example.bsafes
+package com.bsafes.android
 
 import android.annotation.SuppressLint
 import android.app.Activity

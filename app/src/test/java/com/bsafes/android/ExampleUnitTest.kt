@@ -1,4 +1,4 @@
-package com.example.bsafes
+package com.bsafes.android
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
