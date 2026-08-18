@@ -71,7 +71,7 @@ fun MediaChooser(
         contract = ActivityResultContracts.OpenMultipleDocuments()) { selectedUri ->
         handleSelectedUri(selectedUri)
     }
-    val authority = "com.bsafes.android.file_provider"
+    val authority = "${context.packageName}.file_provider"
     fun createFile(mediaExtension: String): Uri {
         val directory = File(context.cacheDir, "captured_media")
         directory.mkdirs()
