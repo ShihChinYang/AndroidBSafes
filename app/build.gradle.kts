@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bsafes"
+    namespace = "com.bsafes.android"
     compileSdk = 35
 
     androidResources {
@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.bsafes.android.bsafes"
+        applicationId = "com.bsafes.android"
         minSdk = 26
         targetSdk = 35
         versionCode = 123
@@ -21,6 +21,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    flavorDimensions += "product"
+    productFlavors {
+        create("bsafes") {
+            dimension = "product"
+            applicationIdSuffix = ".bsafes"
+        }
+        create("AS06") {
+            dimension = "product"
+            applicationIdSuffix = ".AS06"
+        }
+        create("AS07") {
+            dimension = "product"
+            applicationIdSuffix = ".AS07"
+        }
+        create("AS04") {
+            dimension = "product"
+            applicationIdSuffix = ".AS04"
         }
     }
 
