@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.bsafes.android.bsafes"
+        applicationId = "com.bsafes.android"
         minSdk = 26
         targetSdk = 35
         versionCode = 123
@@ -28,19 +28,19 @@ android {
     productFlavors {
         create("bsafes") {
             dimension = "product"
-            applicationId = "com.bsafes.android.bsafes"
+            applicationIdSuffix = ".bsafes"
         }
         create("AS06") {
             dimension = "product"
-            applicationId = "com.bsafes.android.AS06"
+            applicationIdSuffix = ".AS06"
         }
         create("AS07") {
             dimension = "product"
-            applicationId = "com.bsafes.android.AS07"
+            applicationIdSuffix = ".AS07"
         }
         create("AS04") {
             dimension = "product"
-            applicationId = "com.bsafes.android.AS04"
+            applicationIdSuffix = ".AS04"
         }
     }
 
